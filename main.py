@@ -18,6 +18,7 @@ def create_adjacency_matrix(vertices : list):
             neighbour = int(edge.text)
             adj_matrix[i][neighbour] += float(edge.get("cost"))
     print(adj_matrix)
+    print("huh")
 
 
 
