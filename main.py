@@ -1,5 +1,4 @@
 import antColonyOptimisation
-
 import numpy as np
 import random
 import xml.etree.ElementTree as ET
@@ -45,11 +44,14 @@ if __name__ == '__main__':
     DECAY_FACTOR = 0
     NUMBER_OF_ANTS = 5
     LOCAL_SEARCH = False
+    ALPHA = 1
+    BETA = 2
+
     random.seed(10)
     vertices = obtain_city_info()
     adj_matrix = create_adjacency_matrix(vertices)
     tau = initialise_pheromones(adj_matrix.shape[0], adj_matrix.shape[1])
-    antColonyOptimisation.ant_system_algorithm(NUMBER_OF_ANTS, LOCAL_SEARCH, adj_matrix)
+    antColonyOptimisation.ant_system_algorithm(NUMBER_OF_ANTS, adj_matrix, tau, ALPHA, BETA)
 
 
 
