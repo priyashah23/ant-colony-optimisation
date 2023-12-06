@@ -13,6 +13,7 @@ class Ant:
         self.current_city = current_city
         self.city_space = city_space
         self.memory = [current_city]
+        self.cost = 0
 
     def remove_current_node(self, current_node: int) -> None:
         for i in range(self.city_space.shape[0]):
@@ -38,20 +39,35 @@ class Ant:
     def update_memory(self, city):
         return self.memory.append(city)
 
-    def calculate_cost(self):
-        pass
+    def calculate_cost(self, adj_matrix):
+        cost = 0
+        for x in range(len(self.memory)):
+            if x == len(self.memory) - 1:
+                first_element = self.memory[0] - 1
+                last_element = self.memory[x] - 1
+                cost += adj_matrix[last_element][first_element]
+            else:
+                cost += adj_matrix[self.memory[x] - 1][self.memory[x + 1] - 1]
+        self.cost = cost
+
+
+
+
+
+
 
 def ant_system_algorithm(number_of_ants: int, adj_matrix: np.ndarray, tau: np.ndarray, alpha, beta, decay_factor):
     heuristic_matrix = construct_heuristic_matrix(adj_matrix)
     #initalise ants here
-    ant_list = [Ant(random.randrange(1, adj_matrix.shape[0] + 1), heuristic_matrix.copy()) for _ in range(number_of_ants)]
+    ant_list = [Ant(random.randrange(1, adj_matrix.shape[0] + 1), heuristic_matrix.copy()) for _ in range(5)]
 
     for n in range(TEST_NUMBER_OF_ITERATIONS):
         # construct ant solutions
         for current_ant in ant_list:
             perform_ant_tour(adj_matrix.shape[0] - 1, current_ant, tau, alpha, beta, n + 1)
-            update_pheromones()
-
+            current_ant.calculate_cost(adj_matrix)
+            print(current_ant.cost)
+        tau = evaporate_pheromones(decay_factor, tau)
 
 
 def perform_ant_tour(length: int, current_ant: Ant, tau, alpha, beta, n):
@@ -65,8 +81,8 @@ def apply_local_search():
     pass
 
 
-def update_pheromones():
-    pass
+def evaporate_pheromones(decay_factor, tau):
+    return [[ (1 - decay_factor) * tau[i][j] for j in range(tau.shape[0])] for i in range(tau.shape[0])]
 
 
 def construct_heuristic_matrix(adj_matrix: np.ndarray) -> np.ndarray:
@@ -96,3 +112,6 @@ def select_next_node(current_ant: Ant, probabilities: list):
             current_ant.update_memory(x + 1)
             current_ant.current_city = x + 1
             break
+
+def deposit_pheremone():
+    pass
