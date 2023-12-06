@@ -41,7 +41,7 @@ def initialise_pheromones(size_x: int, size_y:int) -> np.ndarray:
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    DECAY_FACTOR = 0
+    DECAY_FACTOR = 0.5
     NUMBER_OF_ANTS = 5
     LOCAL_SEARCH = False
     ALPHA = 1
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     vertices = obtain_city_info()
     adj_matrix = create_adjacency_matrix(vertices)
     tau = initialise_pheromones(adj_matrix.shape[0], adj_matrix.shape[1])
-    antColonyOptimisation.ant_system_algorithm(NUMBER_OF_ANTS, adj_matrix, tau, ALPHA, BETA)
+    antColonyOptimisation.ant_system_algorithm(NUMBER_OF_ANTS, adj_matrix, tau, ALPHA, BETA, DECAY_FACTOR)
 
 
 
