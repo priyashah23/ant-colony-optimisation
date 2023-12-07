@@ -1,6 +1,6 @@
 import random
-
 import numpy as np
+import math
 
 MAXIMUM_NUMBER_OF_ITERATIONS = 10_000
 TEST_NUMBER_OF_ITERATIONS = 10
@@ -53,7 +53,8 @@ class Ant:
                pheromone_matrix[self.memory[x] - 1][self.memory[x + 1] - 1] += delta
         return pheromone_matrix
 
-def ant_system_algorithm(number_of_ants: int, adj_matrix: np.ndarray, tau: np.ndarray, alpha, beta, decay_factor):
+def ant_system_algorithm(number_of_ants: int, adj_matrix: np.ndarray, tau: np.ndarray, alpha, beta, decay_factor) -> list:
+    list_of_points = []
     heuristic_matrix = construct_heuristic_matrix(adj_matrix)
     for n in range(MAXIMUM_NUMBER_OF_ITERATIONS):
         # initalise ants here
@@ -66,10 +67,15 @@ def ant_system_algorithm(number_of_ants: int, adj_matrix: np.ndarray, tau: np.nd
             print(f"Ant {counter} Memory: {current_ant.memory}")
             counter += 1
         tau = evaporate_pheromones(decay_factor, tau)
-
+        minimum_cost = math.inf
         for current_ant in ant_list:
             print(current_ant.cost)
             tau = current_ant.deposit_pheromone(tau)
+            if current_ant.cost < minimum_cost:
+                minimum_cost = current_ant.cost
+        list_of_points.append((n, minimum_cost))
+    return list_of_points
+
 
 
 def perform_ant_tour(length: int, current_ant: Ant, tau, alpha, beta, n, adj_matrix):

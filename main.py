@@ -2,9 +2,9 @@ import antColonyOptimisation
 import numpy as np
 import random
 import xml.etree.ElementTree as ET
-
+import matplotlib.pyplot as plt
 def obtain_city_info() -> list:
-    cities = ET.parse("burma14.xml")
+    cities = ET.parse("brazil58.xml")
     root = cities.getroot()
     graph = root.find("graph")
     vertices = graph.findall("vertex")
@@ -51,7 +51,9 @@ if __name__ == '__main__':
     vertices = obtain_city_info()
     adj_matrix = create_adjacency_matrix(vertices)
     tau = initialise_pheromones(adj_matrix.shape[0], adj_matrix.shape[1])
-    antColonyOptimisation.ant_system_algorithm(NUMBER_OF_ANTS, adj_matrix, tau, ALPHA, BETA, DECAY_FACTOR)
-
+    list_of_points = antColonyOptimisation.ant_system_algorithm(NUMBER_OF_ANTS, adj_matrix, tau, ALPHA, BETA, DECAY_FACTOR)
+    x, y = zip(*list_of_points)
+    plt.scatter(x, y, c='red')
+    plt.show()
 
 
