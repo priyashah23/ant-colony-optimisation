@@ -1,7 +1,6 @@
 import random
 import numpy as np
 import math
-import logging
 
 MAXIMUM_NUMBER_OF_ITERATIONS = 10_000
 TEST_NUMBER_OF_ITERATIONS = 10
@@ -43,19 +42,23 @@ class Ant:
             self.cost += adj_matrix[next_city - 1][first_element]
         self.cost += adj_matrix[current_city - 1][next_city - 1]
 
-    def deposit_pheromone(self, pheromone_matrix: np.ndarray) -> np.ndarray:
+    def deposit_pheromone(self, pheromone_matrix: np.ndarray, elitism_weight: float) -> np.ndarray:
+        e = elitism_weight * (1/self.cost)
         delta = 1/self.cost
         for x in range(len(self.memory)):
             if x == len(self.memory) - 1:
                 first_element = self.memory[0] - 1
                 last_element = self.memory[x] - 1
-                pheromone_matrix[last_element][first_element] += delta
+                pheromone_matrix[last_element][first_element] += delta + e
             else:
-               pheromone_matrix[self.memory[x] - 1][self.memory[x + 1] - 1] += delta
+               pheromone_matrix[self.memory[x] - 1][self.memory[x + 1] - 1] += delta + e
         return pheromone_matrix
 
-def ant_system_algorithm(number_of_ants: int, adj_matrix: np.ndarray, tau: np.ndarray, alpha, beta, decay_factor) -> list:
+def elitism_algorithm(number_of_ants: int, adj_matrix: np.ndarray, tau: np.ndarray, alpha, beta, decay_factor, elitism_weight) -> list:
+    best_ant = None
+    best_cost = math.inf
     list_of_points = []
+
     heuristic_matrix = construct_heuristic_matrix(adj_matrix)
     for n in range(MAXIMUM_NUMBER_OF_ITERATIONS):
         print(f"Number of iterations: {n}")
@@ -64,10 +67,14 @@ def ant_system_algorithm(number_of_ants: int, adj_matrix: np.ndarray, tau: np.nd
         # construct ant solutions
         for current_ant in ant_list:
             perform_ant_tour(adj_matrix.shape[0] - 1, current_ant, tau, alpha, beta, n + 1, adj_matrix)
+            if current_ant.cost < best_cost:
+                best_ant = current_ant
+                best_cost = current_ant.cost
         tau = evaporate_pheromones(decay_factor, tau)
+        best_ant.deposit_pheromone(tau, elitism_weight)
         average = 0
         for current_ant in ant_list:
-            tau = current_ant.deposit_pheromone(tau)
+            tau = current_ant.deposit_pheromone(tau, 0)
             average += current_ant.cost
         list_of_points.append((n, round(average/number_of_ants, 4)))
     return list_of_points
