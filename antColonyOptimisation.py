@@ -57,7 +57,6 @@ def ant_system_algorithm(number_of_ants: int, adj_matrix: np.ndarray, tau: np.nd
         # construct ant solutions
         for current_ant in ant_list:
             perform_ant_tour(adj_matrix.shape[0] - 1, current_ant, tau, alpha, beta, n + 1, adj_matrix)
-            print(current_ant.cost)
         tau = evaporate_pheromones(decay_factor, tau)
 
 
