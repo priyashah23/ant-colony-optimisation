@@ -39,42 +39,33 @@ class Ant:
     def update_memory(self, city):
         return self.memory.append(city)
 
-    def calculate_cost(self, adj_matrix):
-        cost = 0
-        for x in range(len(self.memory)):
-            if x == len(self.memory) - 1:
-                first_element = self.memory[0] - 1
-                last_element = self.memory[x] - 1
-                cost += adj_matrix[last_element][first_element]
-            else:
-                cost += adj_matrix[self.memory[x] - 1][self.memory[x + 1] - 1]
-        self.cost = cost
+    def update_cost(self, current_city, next_city, adj_matrix: np.ndarray):
+        if len(self.memory) == adj_matrix.shape[0]:
+            first_element = self.memory[0] - 1
+            self.cost += adj_matrix[next_city - 1][first_element]
+        self.cost += adj_matrix[current_city - 1][next_city - 1]
 
-
-
-
-
-
+    def deposit_pheromone(self):
+        pass
 
 def ant_system_algorithm(number_of_ants: int, adj_matrix: np.ndarray, tau: np.ndarray, alpha, beta, decay_factor):
     heuristic_matrix = construct_heuristic_matrix(adj_matrix)
     #initalise ants here
-    ant_list = [Ant(random.randrange(1, adj_matrix.shape[0] + 1), heuristic_matrix.copy()) for _ in range(5)]
+    ant_list = [Ant(random.randrange(1, adj_matrix.shape[0] + 1), heuristic_matrix.copy()) for _ in range(number_of_ants)]
 
     for n in range(TEST_NUMBER_OF_ITERATIONS):
         # construct ant solutions
         for current_ant in ant_list:
-            perform_ant_tour(adj_matrix.shape[0] - 1, current_ant, tau, alpha, beta, n + 1)
-            current_ant.calculate_cost(adj_matrix)
+            perform_ant_tour(adj_matrix.shape[0] - 1, current_ant, tau, alpha, beta, n + 1, adj_matrix)
             print(current_ant.cost)
         tau = evaporate_pheromones(decay_factor, tau)
 
 
-def perform_ant_tour(length: int, current_ant: Ant, tau, alpha, beta, n):
+def perform_ant_tour(length: int, current_ant: Ant, tau, alpha, beta, n, adj_matrix):
     for _ in range(length):
         current_ant.remove_current_node(current_ant.current_city - 1)
         probabilities = current_ant.compute_transition_probabilities(current_ant.current_city - 1, tau, alpha, beta, n)
-        select_next_node(current_ant, probabilities)
+        select_next_node(current_ant, probabilities, adj_matrix)
 
 
 def apply_local_search():
@@ -98,7 +89,8 @@ def construct_heuristic_matrix(adj_matrix: np.ndarray) -> np.ndarray:
 
     return eta
 
-def select_next_node(current_ant: Ant, probabilities: list):
+def select_next_node(current_ant: Ant, probabilities: list, adj_matrix):
+    # TODO - move into own method
     cumulative_probabilties = []
     for x in range(len(probabilities)):
         if x == 0:
@@ -109,8 +101,13 @@ def select_next_node(current_ant: Ant, probabilities: list):
     random_probability = random.uniform(0, 1)
     for x in range(len(cumulative_probabilties)):
         if cumulative_probabilties[x] >= random_probability:
+            current_city = current_ant.current_city
+            # add current city to path
             current_ant.update_memory(x + 1)
             current_ant.current_city = x + 1
+            next_city = current_ant.current_city
+            # update cost
+            current_ant.update_cost(current_city, next_city, adj_matrix)
             break
 
 def deposit_pheremone():
