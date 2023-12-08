@@ -1,36 +1,52 @@
 import random
 import numpy as np
-import math
-import logging
 
-MAXIMUM_NUMBER_OF_ITERATIONS = 10_000
+MAXIMUM_NUMBER_OF_FITNESS_EVALUATIONS = 10_000
 TEST_NUMBER_OF_ITERATIONS = 10
 TEST_SINGLE_ANT = 1
 
 
 class Ant:
+    """
+    Class that h
+    """
     def __init__(self, current_city: int, city_space: np.ndarray):
+        """
+        Initialises the ants
+        :param current_city: The current city the ant is on
+        :param city_space: The
+        """
         self.current_city = current_city
         self.city_space = city_space
         self.memory = [current_city]
         self.cost = 0
 
     def remove_current_node(self, current_node: int) -> None:
-        for i in range(self.city_space.shape[0]):
-            for j in range(self.city_space.shape[1]):
-                if j == (current_node) and i != j:
-                    self.city_space[i][j] = 0
+        """
+        Removes the current city as a possible path for the ant to explore
+        :param current_node: Curreny city
+        :return: Void
+        """
+        rows_to_update = np.arange(self.city_space.shape[0])
+        cols_to_update = current_node
+        self.city_space[rows_to_update != cols_to_update, cols_to_update] = 0
 
-    def compute_transition_probabilities(self, current_node, tau, alpha, beta, t) -> list:
-        # Calculate Numerator
-        numerators = [(tau[current_node][i] * t) ** alpha * (self.city_space[current_node][i] * t) ** beta for i in range(self.city_space.shape[0])]
+    def compute_transition_probabilities(self, current_node, tau, alpha, beta, t) -> np.ndarray:
+        """
+        Computes the transition probabilties
+        :param current_node: the current city the ant is on
+        :param tau: The pheromone matrix
+        :param alpha: Alpha is a constant controlling how much of the pheromone is involved in the transition
+        :param beta: Beta is A constant controlling how much the heuristic influences the transitions
+        :param t: The current iteration
+        :return:
+        """
+        # Calculate Numerators
+        numerators = tau[current_node] ** alpha * (self.city_space[current_node] ** beta) * t
         # Calculate Denominator
-        denominator = 0
-        for element in numerators:
-            denominator += element
-
+        denominator = numerators.sum()
         # Probabilities
-        probabilities = [round(numerators[i]/denominator, 4) for i in range(self.city_space.shape[0])]
+        probabilities = numerators/denominator
 
         return probabilities
 
@@ -57,19 +73,23 @@ class Ant:
 def ant_system_algorithm(number_of_ants: int, adj_matrix: np.ndarray, tau: np.ndarray, alpha, beta, decay_factor) -> list:
     list_of_points = []
     heuristic_matrix = construct_heuristic_matrix(adj_matrix)
-    for n in range(MAXIMUM_NUMBER_OF_ITERATIONS):
-        print(f"Number of iterations: {n}")
-        # initalise ants here
-        ant_list = [Ant(random.randrange(1, adj_matrix.shape[0] + 1), heuristic_matrix.copy()) for _ in range(number_of_ants)]
+    number_of_fitness_evaluations = 0
+    while number_of_fitness_evaluations <= MAXIMUM_NUMBER_OF_FITNESS_EVALUATIONS:
+        # initialise ants here
+        ant_list = [Ant(random.randrange(1, adj_matrix.shape[0] + 1), heuristic_matrix.copy()) for _ in
+                    range(number_of_ants)]
         # construct ant solutions
-        for current_ant in ant_list:
-            perform_ant_tour(adj_matrix.shape[0] - 1, current_ant, tau, alpha, beta, n + 1, adj_matrix)
-        tau = evaporate_pheromones(decay_factor, tau)
         average = 0
         for current_ant in ant_list:
-            tau = current_ant.deposit_pheromone(tau)
+            perform_ant_tour(adj_matrix.shape[0] - 1, current_ant, tau, alpha, beta, number_of_fitness_evaluations + 1, adj_matrix)
             average += current_ant.cost
-        list_of_points.append((n, round(average/number_of_ants, 4)))
+            number_of_fitness_evaluations += 1
+        list_of_points.append((number_of_fitness_evaluations, round(average/number_of_ants, 4)))
+
+        # Evaporate Pheromones
+        tau = evaporate_pheromones(decay_factor, tau)
+        for current_ant in ant_list:
+            tau = current_ant.deposit_pheromone(tau)
     return list_of_points
 
 
@@ -84,7 +104,6 @@ def perform_ant_tour(length: int, current_ant: Ant, tau, alpha, beta, n, adj_mat
 def apply_local_search():
     pass
 
-
 def evaporate_pheromones(decay_factor, tau: np.ndarray) -> np.ndarray:
     for i in range(tau.shape[0]):
         for j in range(tau.shape[1]):
@@ -92,9 +111,7 @@ def evaporate_pheromones(decay_factor, tau: np.ndarray) -> np.ndarray:
     return tau
 
 def construct_heuristic_matrix(adj_matrix: np.ndarray) -> np.ndarray:
-
     eta = np.zeros((adj_matrix.shape[0], adj_matrix.shape[1]))
-
     for i in range(adj_matrix.shape[0]):
         for j in range(adj_matrix.shape[1]):
             if i !=j :
@@ -104,15 +121,9 @@ def construct_heuristic_matrix(adj_matrix: np.ndarray) -> np.ndarray:
 
     return eta
 
-def select_next_node(current_ant: Ant, probabilities: list, adj_matrix):
+def select_next_node(current_ant: Ant, probabilities: np.ndarray, adj_matrix):
     # TODO - move into own method
-    cumulative_probabilities = []
-    for x in range(len(probabilities)):
-        if x == 0:
-            cumulative_probabilities.append(probabilities[x])
-        else:
-            cumulative_probabilities.append(cumulative_probabilities[x - 1] + probabilities[x])
-
+    cumulative_probabilities = np.cumsum(probabilities)
     random_probability = random.uniform(0, 1)
     for x in range(len(cumulative_probabilities)):
         if cumulative_probabilities[x] >= random_probability:
