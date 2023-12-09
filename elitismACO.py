@@ -2,10 +2,7 @@ import random
 import numpy as np
 import math
 
-MAXIMUM_NUMBER_OF_ITERATIONS = 10_000
-TEST_NUMBER_OF_ITERATIONS = 10
-TEST_SINGLE_ANT = 1
-
+MAXIMUM_NUMBER_OF_FITNESS_EVALUATIONS = 10_000
 
 class Ant:
     def __init__(self, current_city: int, city_space: np.ndarray):
@@ -15,21 +12,16 @@ class Ant:
         self.cost = 0
 
     def remove_current_node(self, current_node: int) -> None:
-        for i in range(self.city_space.shape[0]):
-            for j in range(self.city_space.shape[1]):
-                if j == (current_node) and i != j:
-                    self.city_space[i][j] = 0
-
-    def compute_transition_probabilities(self, current_node, tau, alpha, beta, t) -> list:
-        # Calculate Numerator
-        numerators = [(tau[current_node][i] * t) ** alpha * (self.city_space[current_node][i] * t) ** beta for i in range(self.city_space.shape[0])]
+        rows_to_update = np.arange(self.city_space.shape[0])
+        cols_to_update = current_node
+        self.city_space[rows_to_update != cols_to_update, cols_to_update] = 0
+    def compute_transition_probabilities(self, current_node, tau, alpha, beta, t) -> np.ndarray:
+        # Calculate Numerators
+        numerators = tau[current_node] ** alpha * (self.city_space[current_node] ** beta) * t
         # Calculate Denominator
-        denominator = 0
-        for element in numerators:
-            denominator += element
-
+        denominator = numerators.sum()
         # Probabilities
-        probabilities = [round(numerators[i]/denominator, 4) for i in range(self.city_space.shape[0])]
+        probabilities = numerators / denominator
 
         return probabilities
 
@@ -60,23 +52,23 @@ def elitism_algorithm(number_of_ants: int, adj_matrix: np.ndarray, tau: np.ndarr
     list_of_points = []
 
     heuristic_matrix = construct_heuristic_matrix(adj_matrix)
-    for n in range(MAXIMUM_NUMBER_OF_ITERATIONS):
-        print(f"Number of iterations: {n}")
-        # initalise ants here
+    number_of_fitness_evaluations = 0
+    while number_of_fitness_evaluations <= MAXIMUM_NUMBER_OF_FITNESS_EVALUATIONS:
+        # initialise ants here
         ant_list = [Ant(random.randrange(1, adj_matrix.shape[0] + 1), heuristic_matrix.copy()) for _ in range(number_of_ants)]
         # construct ant solutions
         for current_ant in ant_list:
-            perform_ant_tour(adj_matrix.shape[0] - 1, current_ant, tau, alpha, beta, n + 1, adj_matrix)
+            perform_ant_tour(adj_matrix.shape[0] - 1, current_ant, tau, alpha, beta, number_of_fitness_evaluations + 1, adj_matrix)
+            number_of_fitness_evaluations += 1
             if current_ant.cost < best_cost:
                 best_ant = current_ant
                 best_cost = current_ant.cost
+        minimum_cost = min(ant_list, key=lambda x: x.cost)
+        list_of_points.append((number_of_fitness_evaluations, minimum_cost.cost))
         tau = evaporate_pheromones(decay_factor, tau)
-        best_ant.deposit_pheromone(tau, elitism_weight)
-        average = 0
+        tau = best_ant.deposit_pheromone(tau, elitism_weight)
         for current_ant in ant_list:
             tau = current_ant.deposit_pheromone(tau, 0)
-            average += current_ant.cost
-        list_of_points.append((n, round(average/number_of_ants, 4)))
     return list_of_points
 
 
@@ -111,15 +103,8 @@ def construct_heuristic_matrix(adj_matrix: np.ndarray) -> np.ndarray:
 
     return eta
 
-def select_next_node(current_ant: Ant, probabilities: list, adj_matrix):
-    # TODO - move into own method
-    cumulative_probabilities = []
-    for x in range(len(probabilities)):
-        if x == 0:
-            cumulative_probabilities.append(probabilities[x])
-        else:
-            cumulative_probabilities.append(cumulative_probabilities[x - 1] + probabilities[x])
-
+def select_next_node(current_ant: Ant, probabilities: np.ndarray, adj_matrix):
+    cumulative_probabilities = np.cumsum(probabilities)
     random_probability = random.uniform(0, 1)
     for x in range(len(cumulative_probabilities)):
         if cumulative_probabilities[x] >= random_probability:

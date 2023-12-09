@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 import matplotlib.pyplot as plt
 
 import elitismACO
+import rankBasedSystem
 
 
 def obtain_city_info(name: int) -> list:
@@ -56,14 +57,45 @@ def create_first_trial(DECAY_FACTOR, NUMBER_OF_ANTS, ALPHA, BETA, adj_matrix, ci
         list_of_points = antColonyOptimisation.ant_system_algorithm(NUMBER_OF_ANTS, adj_matrix, tau, ALPHA, BETA, DECAY_FACTOR)
         x, y = zip(*list_of_points)
         plt.plot(x, y, label=f"Trial: {trial}")
-    plt.title(f"{city}: No. of Ants: {NUMBER_OF_ANTS}, Decay_factor = 0.5, Alpha = 1, Beta = 2")
+    plt.title(f"{city}: No. of Ants: {NUMBER_OF_ANTS}, Decay_factor = {DECAY_FACTOR}, Alpha = {ALPHA}, Beta = {BETA}")
     plt.legend()
     plt.xlabel('Number of Evaluations')
-    plt.ylabel('Ant Fitness')
+    plt.ylabel('Heuristic Function')
     plt.xscale('log')
-    plt.savefig(f'experiments/{city}/number_of_ants_{NUMBER_OF_ANTS}.png')
+    plt.savefig(f'experiments/{city}/ants_{NUMBER_OF_ANTS}.png')
 
-# Press the green button in the gutter to run the script.
+
+def plot_different_ant_colonies(DECAY_FACTOR, NUMBER_OF_ANTS, ALPHA, BETA, adj_matrix, city):
+    fig, ax = plt.subplots(ncols=3, nrows=1, figsize=(50, 10))
+    for trial in range(3):
+        print(f"(Trial {trial + 1})")
+        # Regular aco optimisation
+        tau = initialise_pheromones(adj_matrix.shape[0], adj_matrix.shape[1])
+        aco_list_of_points = antColonyOptimisation.ant_system_algorithm(NUMBER_OF_ANTS, adj_matrix, tau, ALPHA, BETA, DECAY_FACTOR)
+        aco_x, aco_y = zip(*aco_list_of_points)
+
+        # Elitism Approach
+        tau = initialise_pheromones(adj_matrix.shape[0], adj_matrix.shape[1])
+        list_of_points = elitismACO.elitism_algorithm(NUMBER_OF_ANTS, adj_matrix, tau, ALPHA, BETA, DECAY_FACTOR, 0.5)
+        elite_x, elite_y = zip(*list_of_points)
+
+        # Rank Based System
+        tau = initialise_pheromones(adj_matrix.shape[0], adj_matrix.shape[1])
+        rank_based_points = rankBasedSystem.rank_based_algorithm(NUMBER_OF_ANTS, adj_matrix, tau, ALPHA, BETA, DECAY_FACTOR, 0.5, 6)
+        x, y = zip(*rank_based_points)
+
+        # Print out the graphs
+        ax[trial].title.set_text(f"{city.upper()}: No. of Ants: {NUMBER_OF_ANTS}, Trial: {trial + 1}")
+        ax[trial].set_xlabel('Number of Evaluations')
+        ax[trial].set_ylabel('Heuristic Cost')
+        ax[trial].set_xscale('log')
+        ax[trial].plot(aco_x, aco_y, label="AS System")
+        ax[trial].plot(elite_x, elite_y, label="Elitism")
+        ax[trial].plot(x, y, label=f"Rank_Based System")
+        ax[trial].legend(loc="upper right", fontsize=12)
+    plt.savefig(f'experiments/{city}/different_aco_variations.png')
+
+
 if __name__ == '__main__':
     DECAY_FACTOR = 0.5
     NUMBER_OF_ANTS = 100
@@ -77,6 +109,8 @@ if __name__ == '__main__':
     adj_matrix = create_adjacency_matrix(vertices)
     city = "burma" if city_selection == 1 else "brazil"
     create_first_trial(DECAY_FACTOR, NUMBER_OF_ANTS, ALPHA, BETA, adj_matrix, city)
+    #plot_different_ant_colonies(DECAY_FACTOR, NUMBER_OF_ANTS, ALPHA, BETA, adj_matrix, city)
+
 
 
 
